@@ -1,0 +1,1 @@
+download clinvar_20260218.vcf.gz file from https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar_20260218.vcf.gz and extract to the project directory.
