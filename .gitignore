@@ -3,6 +3,7 @@ clinvar_20260218.vcf
 #fasta file for nucleotides
 *.fa
 *.fasta
+*.fai
 
 # Generated outputs (large / reproducible)
 *.pkl
