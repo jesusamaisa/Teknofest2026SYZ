@@ -1,6 +1,6 @@
 # Project Progress
 
-Last Updated: 2026-03-16
+Last Updated: 2026-03-22
 
 ## Status Summary
 
@@ -18,7 +18,7 @@ Last Updated: 2026-03-16
    - [x] Filter ClinVar by ReviewStatus, type, consequence, genes, labels
    - [x] Build minimal VCF (CHROM, POS, REF, ALT)
 3. **Feature Extraction**
-   - [x] VEP REST API integration (with offline TSV fallback)
+   - [x] VEP REST API integration
    - [x] Extract gnomAD AF from VEP output
    - [x] Extract nucleotide context (±5 nt) from GRCh38 FASTA
    - [x] Extract amino-acid context (±5 AA) from idmapping_2026_03_16.fasta
@@ -53,8 +53,8 @@ Last Updated: 2026-03-16
 
 - ClinVar strict ReviewStatus filters may yield a small dataset
   - Mitigation: track class counts after filtering; allow fallback to 2-star if counts are too low (only if approved).
-- VEP offline setup and dbNSFP availability can delay progress
-  - Mitigation: confirm cache + dbNSFP paths early; keep a small test VCF to validate VEP before full run.
+- VEP REST API rate limits and connection stability
+  - Mitigation: implement retry logic and strict delays to avoid being blocked by the Ensembl API.
 - Protein position mapping errors for long proteins (e.g., BRCA2)
   - Mitigation: validate protein position parsing with spot checks; flag variants with unmapped positions.
 - Missing gnomAD AF for some variants; need consistent imputation

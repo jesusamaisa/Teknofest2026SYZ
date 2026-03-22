@@ -25,6 +25,6 @@ The notebook requires:
 - Python 3.x
 - Jupyter Notebook or JupyterLab
 - Standard data science libraries (Pandas, Scikit-learn, PySAM, etc.)
-- Offline Ensembl VEP with dbNSFP and GRCh38 cache (for reproducible variant annotation).
+- Internet access for Ensembl VEP REST API (for variant annotation and frequencies).
 
 Basic sequence dependencies (FASTA files and ClinVar VCFs) should be placed in the project root or downloaded directly within the notebook as specified in the execution steps.
