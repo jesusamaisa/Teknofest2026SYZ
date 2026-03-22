@@ -46,23 +46,15 @@ Build a machine-learning pipeline (delivered as a Jupyter notebook — `.ipynb`)
 
 | Item | Detail |
 |---|---|
-| **Source** | **Offline VEP** with cache + plugins |
-| **Format** | VCF/TSV |
+| **Source** | **VEP REST API** |
+| **Format** | JSON |
 | **Why** | Single entry point to obtain SIFT, PolyPhen-2, CADD, REVEL, MetaLR, GERP++, phyloP, phastCons, and more |
 
 **How it will be used:**
 
-1. Construct a VCF from the ClinVar-filtered variants (`CHROM`, `POS`, `REF`, `ALT`).
-2. **Offline VEP** (recommended for reproducibility): Install VEP + GRCh38 cache + dbNSFP plugin locally and run:
-   ```bash
-   vep -i input.vcf --cache --assembly GRCh38 \
-       --plugin dbNSFP,dbNSFP4.5a.gz,SIFT_score,Polyphen2_HDIV_score,\
-       CADD_phred,REVEL_score,MetaLR_score,GERP++_RS,\
-       phyloP100way_vertebrate,phastCons100way_vertebrate \
-       --af_gnomad \
-       --tab -o vep_output.tsv
-   ```
-3. Parse output; merge back to ClinVar data on **chrom + pos + ref + alt**.
+1. Construct an API payload from the ClinVar-filtered variants (up to 200 per POST request).
+2. **VEP REST API**: Use the `vep/human/region` POST endpoint, passing the variants and requesting dbNSFP parameters (e.g., `dbNSFP=SIFT_score,Polyphen2_HDIV_score,CADD_phred,REVEL_score,MetaLR_score,GERP++_RS,phyloP100way_vertebrate,phastCons100way_vertebrate`).
+3. Parse the JSON response and map it back to ClinVar data on **chrom + pos + ref + alt**.
 
 **Scores extracted from VEP / dbNSFP:**
 
@@ -121,19 +113,17 @@ Build a machine-learning pipeline (delivered as a Jupyter notebook — `.ipynb`)
 
 | Item | Detail |
 |---|---|
-| **Source** | **VEP `--af_gnomad` (preferred for ~1500 variants)** or gnomAD v4 API |
-| **Format** | VEP TSV or GraphQL API (JSON) |
+| **Source** | **VEP REST API** (with `--af_gnomad` equivalent flag) |
+| **Format** | JSON |
 | **Why** | Minor Allele Frequency (MAF) is a key population-level feature |
 
 **How it will be used:**
 
-1. Prefer VEP with `--af_gnomad` to obtain Global MAF directly in the VEP output.
+1. Pass the `af_gnomad=1` or relevant population frequency parameters in the VEP REST API POST request to obtain Global MAF directly in the JSON output.
 2. Extract:
-   - **Global MAF** (`AF`)
+   - **Global MAF** (`gnomAD_AF` or `gnomADe_AF` / `gnomADg_AF` from the JSON response).
 3. Missing variants are assigned `MAF = 0` (ultra-rare / absent).
 4. Merge on **chrom + pos**.
-
-> **Alternative:** Use the gnomAD API only if VEP `--af_gnomad` is unavailable.
 
 ---
 
@@ -222,9 +212,9 @@ ClinVar (filtered)
 | 1 | **Imports & Config** | Libraries, `TARGET_GENES`, paths, random seed |
 | 2 | **ClinVar Download & Load** | Download `variant_summary.txt.gz`, read into DataFrame |
 | 3 | **ClinVar Filtering** | Apply adjustments §3.1–3.5 (review stars, SNV, missense, genes, labels) |
-| 4 | **Generate Input VCF** | Create minimal VCF for VEP from filtered variants |
-| 5 | **Run / Load VEP Results** | Run offline VEP and load output |
-| 6 | **gnomAD MAF Retrieval** | Extract Global MAF from VEP `--af_gnomad` output |
+| 4 | **Prepare API Payload** | Format variants for VEP REST API POST endpoint |
+| 5 | **Query VEP REST API** | Fetch in silico risk scores and conservation data via API batches |
+| 6 | **gnomAD MAF Retrieval** | Extract Global MAF from the VEP JSON response |
 | 7 | **Nucleotide Context Extraction** | `pysam` + GRCh38 FASTA → flanking nt features |
 | 8 | **Protein Context Extraction** | UniProt FASTA → flanking AA features |
 | 9 | **Biochemical Feature Calculation** | ΔHydrophobicity, ΔVolume, ΔCharge, ΔMW, ΔPolarity, Grantham |
@@ -287,12 +277,12 @@ missense_classification/
 ```mermaid
 graph TD
     A[Download ClinVar] --> B[Filter ClinVar]
-    B --> C[Generate VCF]
-    C --> D[Run VEP]
+    B --> C[Prepare VEP API Payload]
+    C --> D[Query VEP REST API]
     B --> E[Extract Nucleotide Context via FASTA]
     B --> F[Extract AA Context via Protein FASTA]
     B --> G[Calculate Biochemical Features]
-    D --> H[Merge VEP Scores]
+    D --> H[Merge VEP Scores & gnomAD]
     E --> H
     F --> H
     G --> H
@@ -309,7 +299,7 @@ graph TD
 | Risk | Mitigation |
 |---|---|
 | Small dataset after strict filtering (expert panel / practice guideline, targeted genes) | Track class counts after filtering; consider stratified CV; allow fallback to 2-star only if approved |
-| VEP offline setup and dbNSFP availability | Confirm cache + dbNSFP paths early; run a small test VCF before full run |
+| VEP REST API rate limits and timeouts | Send POST requests in batches of 200; implement retry logic with exponential backoff and handle timeouts gracefully |
 | Missing gnomAD AF for some variants | Impute Global MAF = 0 and add a missing-flag feature |
 | Protein position mapping errors (long proteins) | Spot-check protein position parsing; flag unmapped variants |
 
@@ -323,6 +313,6 @@ graph TD
 | Sequence & Change Info | ClinVar + VCF construction | `variant_summary.txt.gz` |
 | Local Nucleotide Context | Reference genome FASTA | `GRCh38.primary_assembly.fa` |
 | Local Amino Acid Context | UniProt protein FASTA | `PAH.fasta`, `CFTR.fasta`, panel gene FASTAs |
-| Evolutionary Conservation | VEP + dbNSFP plugin | VEP REST API or offline cache |
-| Population Data / MAF | gnomAD (via VEP flag) | VEP `--af_gnomad` |
-| In Silico Risk Scores | VEP + dbNSFP plugin | VEP REST API or offline cache |
+| Evolutionary Conservation | VEP + dbNSFP plugin parameter | VEP REST API |
+| Population Data / MAF | gnomAD | VEP REST API |
+| In Silico Risk Scores | VEP + dbNSFP plugin parameter | VEP REST API |

@@ -17,7 +17,7 @@
 
 - Use idmapping_2026_03_16.fasta for amino-acid context extraction.
 - Use Homo_sapiens.GRCh38.dna.primary_assembly.fa for nucleotide context extraction.
-- Prefer offline VEP with dbNSFP and --af_gnomad; consume the TSV output in the notebook.
+- Use Ensembl VEP REST API for fetching annotations and gnomAD frequencies since the sample size is small (~3000 variants); consume the JSON output in the notebook.
 
 ## Editing Guidance
 
