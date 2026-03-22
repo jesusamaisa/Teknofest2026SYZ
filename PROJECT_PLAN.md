@@ -59,6 +59,7 @@ Build a machine-learning pipeline (delivered as a Jupyter notebook — `.ipynb`)
        --plugin dbNSFP,dbNSFP4.5a.gz,SIFT_score,Polyphen2_HDIV_score,\
        CADD_phred,REVEL_score,MetaLR_score,GERP++_RS,\
        phyloP100way_vertebrate,phastCons100way_vertebrate \
+       --af_gnomad \
        --tab -o vep_output.tsv
    ```
 3. Parse output; merge back to ClinVar data on **chrom + pos + ref + alt**.
